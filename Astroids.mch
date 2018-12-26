@@ -1,22 +1,25 @@
-/* Astroids
- * Author: Thiloshon
- * Creation date: 24-Dec-18
- */
+/* ***********************************************
+** 6SENG001W Reasoning About Programs Coursework
+** Spaceship & Asteroids
+**
+** Component: Astroids
+** Author:    Thiloshon
+** Created:   24-Dec-18
+** Modified:  26-Dec-18
+*********************************************** */
 MACHINE
     Astroids
-
+    
 SEES
     Space
-
+    
 VARIABLES
     asteroids
-
+    
 INVARIANT
-    asteroids : NATURAL1 <-> NATURAL1 & 
-    card(asteroids) = 11 &
-    dom(asteroids) <: xMin .. xMax &
-    ran(asteroids) <: yMin .. yMax
-
+    asteroids : xRegion <-> yRegion & 
+    card(asteroids) = 11
+    
 INITIALISATION
     asteroids := {   
         (3 |-> 2), 
@@ -30,13 +33,13 @@ INITIALISATION
         (10 |-> 6),  
         (11 |-> 2),  
         (12 |-> 5)}
-
+    
 DEFINITIONS     
     has_asteroid(x, y) == ( y : ran({x} <| asteroids) )
-
+    
 OPERATIONS
     
-    ans <-- is_an_asteroid(xNew, yNew) = 
+    ans <-- hits_astroid(xNew, yNew) = 
     PRE
         xNew : NATURAL1 & yNew : NATURAL1 
     THEN        
@@ -47,5 +50,5 @@ OPERATIONS
             ans := FALSE
         END        
     END
-
+    
 END

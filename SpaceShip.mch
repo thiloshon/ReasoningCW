@@ -1,16 +1,31 @@
-/* SpaceShip
-* Author: Thiloshon
-* Creation date: 06-Dec-18
-*/
-
-MACHINE         SpaceShip   
+/* ***********************************************
+** 6SENG001W Reasoning About Programs Coursework
+** Spaceship & Asteroids
+**
+** Component: SpaceShip
+** Author:    Thiloshon
+** Created:   06-Dec-18
+** Modified:  26-Dec-18
+*********************************************** */
+MACHINE         
+    SpaceShip   
     
-EXTENDS
+INCLUDES
     Space, Astroids
     
 SETS            
-    ALERT = { Exceeding_Boundry, Astroid_Strike, No_Power, Moved_Up, Moved_Right, Moved_Down, Moved_Left, Warped, Ready }
-     // game
+    ALERT = { 
+        Exceeding_Boundry, 
+        Astroid_Strike, 
+        No_Power, 
+        Moved_Up, 
+        Moved_Right, 
+        Moved_Down, 
+        Moved_Left, 
+        Warped, 
+        Ready } ; 
+    
+    GAME_STATUS = { READY, PLAYING, WON, LOST }
     
 CONSTANTS       
     normalPower,  
@@ -24,62 +39,76 @@ PROPERTIES
     normalPower : NATURAL1 & normalPower = 5 & 
     warpPower : NATURAL1 & warpPower = 20  & 
     crashPower : NATURAL1 & crashPower = 10 & 
-    totalPower : NATURAL1 & totalPower = 100 &
-    homebase = (1 |-> 1) & starbase = (6 |-> 4)
+    totalPower : NATURAL1 & totalPower = 20 &
+    homebase : (xRegion * yRegion) &  homebase = (1 |-> 1) &
+    starbase : (xRegion * yRegion) &  starbase = (6 |-> 4)
     
 DEFINITIONS     
     has_power == ((currentPower - normalPower) >= 0);
     has_warp_power == ((currentPower - warpPower) >= 0);
-    strikes_boundry(x, y) == (x /: xMin .. xMax or y /: yMin .. yMax);
+    strikes_boundry(x, y) == (x /: xRegion or y /: yRegion);
     hits_astroid(x, y) == (y : ran({x} <| asteroids));
-is_starbase(x, y) == ((x |-> y) = starbase)
+    is_starbase(x, y) == ((x |-> y) = starbase)
     
 VARIABLES       
     shipXPosition,
     shipYPosition,
     currentPower,
     collisionsCount,
-    visitedSpaceRegions
-    
+    visitedSpaceRegions,
+    game_status
     
 INVARIANT       
-    shipXPosition : NATURAL1 & shipXPosition : xMin .. xMax & 
-    shipYPosition : NATURAL1 & shipYPosition : yMin .. yMax & (shipYPosition |-> shipXPosition) /: asteroids &
-    currentPower : NATURAL1 &
+    shipXPosition : xRegion & 
+    shipYPosition : yRegion & 
+    (shipXPosition |-> shipYPosition) /: asteroids &
+    currentPower : NATURAL &
     collisionsCount : NATURAL &
-    visitedSpaceRegions : seq(NATURAL1 * NATURAL1)
+    visitedSpaceRegions : seq(xRegion * yRegion) &
+    game_status : GAME_STATUS
     
 INITIALISATION  
-    shipXPosition := prj1(NATURAL1, NATURAL1)(homebase)  || 
-    shipYPosition := prj2(NATURAL1, NATURAL1)(homebase) || 
+    shipXPosition := prj1(xRegion, yRegion)(homebase)  || 
+    shipYPosition := prj2(xRegion, yRegion)(homebase) || 
     currentPower := totalPower ||
     collisionsCount := 0 ||
-    visitedSpaceRegions := []
-    
+    visitedSpaceRegions := [] ||
+    game_status := READY
     
 OPERATIONS
     
     alert <--  moveUp =
-    IF (has_power)
+    PRE
+        game_status /= WON
     THEN
-        IF (strikes_boundry(shipXPosition, shipYPosition + 1))
+        IF (has_power)
         THEN
-            alert := Exceeding_Boundry
-        ELSE
-            IF (hits_astroid(shipXPosition, shipYPosition + 1))
+            IF (strikes_boundry(shipXPosition, shipYPosition + 1))
             THEN
-                currentPower :=  currentPower - crashPower ||
-                alert := Astroid_Strike ||
-                collisionsCount := collisionsCount + 1
+                alert := Exceeding_Boundry
             ELSE
-                shipYPosition := shipYPosition + 1
-                || currentPower :=  currentPower - normalPower
-                || alert := Moved_Up  
-                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition))           
+                IF (hits_astroid(shipXPosition, shipYPosition + 1))
+                THEN
+                    currentPower :=  currentPower - crashPower ||
+                    alert := Astroid_Strike ||
+                    collisionsCount := collisionsCount + 1
+                ELSE
+                    shipYPosition := shipYPosition + 1
+                    || currentPower :=  currentPower - normalPower
+                    || alert := Moved_Up  
+                    || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition))
+                    || IF (is_starbase(shipXPosition, shipYPosition))
+                    THEN
+                        game_status:= WON
+                    ELSE
+                        game_status := PLAYING
+                    END           
+                END
             END
+        ELSE
+            alert := No_Power ||
+            game_status := LOST // No power for warp doesn't mean the game is lost
         END
-    ELSE
-        alert := No_Power
     END;
     
     
@@ -99,12 +128,20 @@ OPERATIONS
                 shipYPosition := shipYPosition - 1
                 || currentPower :=  currentPower - normalPower
                 || alert := Moved_Down     
-                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition))              
+                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition))
+                || IF (is_starbase(shipXPosition, shipYPosition))
+                THEN
+                    game_status:= WON
+                ELSE
+                    game_status := PLAYING
+                END              
             END
         END
     ELSE
-        alert := No_Power
+        alert := No_Power ||
+        game_status := LOST
     END;
+    
     
     alert <--  moveRight =
     IF (has_power)
@@ -122,12 +159,20 @@ OPERATIONS
                 shipXPosition := shipXPosition + 1
                 || currentPower :=  currentPower - normalPower
                 || alert := Moved_Right     
-                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition))              
+                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition)) 
+                ||IF (is_starbase(shipXPosition, shipYPosition))
+                THEN
+                    game_status:= WON
+                ELSE
+                    game_status := PLAYING
+                END             
             END
         END
     ELSE
-        alert := No_Power
+        alert := No_Power ||
+        game_status := LOST
     END;
+    
     
     alert <-- moveLeft =
     IF (has_power)
@@ -146,11 +191,19 @@ OPERATIONS
                 || currentPower :=  currentPower - normalPower
                 || alert := Moved_Left  
                 || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition)) 
+                || IF (is_starbase(shipXPosition, shipYPosition))
+                THEN
+                    game_status:= WON
+                ELSE
+                    game_status := PLAYING
+                END
             END
         END
     ELSE
-        alert := No_Power
+        alert := No_Power ||
+        game_status := LOST
     END;
+    
     
     alert <-- EngageWarpDrive(xNew, yNew) =
     PRE 
@@ -173,41 +226,18 @@ OPERATIONS
                     || currentPower :=  currentPower - warpPower
                     || alert := Warped  
                     || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition)) 
+                    || IF (is_starbase(shipXPosition, shipYPosition))
+                    THEN
+                        game_status:= WON
+                    ELSE
+                        game_status := PLAYING
+                    END
                 END
             END
         ELSE
-            alert := No_Power
+            alert := No_Power ||
+            game_status := LOST
         END
-    END;
-
-location, power, collisions <-- MissionStatus = 
-    BEGIN
-        location := (shipXPosition |-> shipYPosition) ||
-        power := currentPower ||
-        collisions := collisionsCount
-    END;
-    
-    route <-- MissionRoute = 
-    BEGIN
-        route := visitedSpaceRegions
-    END;
-    
-    dockedStatus <-- DockedAtStarbase =  
-    IF (is_starbase(shipXPosition, shipYPosition))
-    THEN
-        dockedStatus := TRUE
-    ELSE
-        dockedStatus := FALSE
-    END;
-
-route <-- test1 = 
-    BEGIN
-        route := visitedSpaceRegions
-    END;
-
-test2 = 
-    BEGIN
-        currentPower := 100
     END
     
 END

@@ -1,28 +1,28 @@
-/* Space
-* Author: Thiloshon
-* Creation date: 24-Dec-18
-*/
+/* ***********************************************
+** 6SENG001W Reasoning About Programs Coursework
+** Spaceship & Asteroids
+**
+** Component: Space
+** Author:    Thiloshon
+** Created:   24-Dec-18
+** Modified:  26-Dec-18
+*********************************************** */
 MACHINE
     Space
     
 CONSTANTS       
-    xMin,
-    xMax,
-    yMin,
-    yMax
+    xRegion,
+    yRegion
     
 PROPERTIES    
-    xMax : NATURAL1 & xMax = 12 & // mkae into range
-    yMax : NATURAL1 & yMax = 7 &
-    xMin : NATURAL1 & xMin = 1 &
-    yMin : NATURAL1 & yMin = 1 
-    
+    xRegion = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 } & // or can use xMin, xMax
+    yRegion = { 1, 2, 3, 4, 5, 6, 7 } 
     
 DEFINITIONS
-    strikes_boundry(x, y) == ( x /: xMin .. xMax or y /: yMin .. yMax )
+    strikes_boundry(x, y) == ( x /: xRegion or y /: yRegion )
     
 OPERATIONS
-
+    
     ans <-- is_a_boundry(xNew, yNew) = 
     PRE
         xNew : NATURAL1 & yNew : NATURAL1 
@@ -34,4 +34,5 @@ OPERATIONS
             ans := FALSE
         END        
     END
+    
 END
