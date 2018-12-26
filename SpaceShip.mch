@@ -3,33 +3,36 @@
 * Creation date: 06-Dec-18
 */
 
-MACHINE         SpaceShip
+MACHINE         SpaceShip   
     
 EXTENDS
     Space, Astroids
     
 SETS            
-    ALERT = { Exceeding_Boundry, Astroid_Strike, No_Power, Moved_Up, Moved_Right, Moved_Down, Moved_Left, Warped, Ready } // game
+    ALERT = { Exceeding_Boundry, Astroid_Strike, No_Power, Moved_Up, Moved_Right, Moved_Down, Moved_Left, Warped, Ready }
+     // game
     
 CONSTANTS       
     normalPower,  
     warpPower, 
     crashPower,
     totalPower,
-    homebase
+    homebase,
+    starbase
     
 PROPERTIES     
     normalPower : NATURAL1 & normalPower = 5 & 
     warpPower : NATURAL1 & warpPower = 20  & 
     crashPower : NATURAL1 & crashPower = 10 & 
     totalPower : NATURAL1 & totalPower = 100 &
-    homebase = (1 |-> 1)
+    homebase = (1 |-> 1) & starbase = (6 |-> 4)
     
 DEFINITIONS     
     has_power == ((currentPower - normalPower) >= 0);
     has_warp_power == ((currentPower - warpPower) >= 0);
     strikes_boundry(x, y) == (x /: xMin .. xMax or y /: yMin .. yMax);
-    hits_astroid(x, y) == (y : ran({x} <| asteroids))
+    hits_astroid(x, y) == (y : ran({x} <| asteroids));
+is_starbase(x, y) == ((x |-> y) = starbase)
     
 VARIABLES       
     shipXPosition,
@@ -55,18 +58,6 @@ INITIALISATION
     
     
 OPERATIONS
-    
-    location, power, collisions <-- MissionStatus = 
-    BEGIN
-        location := (shipXPosition |-> shipYPosition) ||
-        power := currentPower ||
-        collisions := collisionsCount
-    END;
-
-    route <-- MissionRoute = 
-    BEGIN
-        route := visitedSpaceRegions
-        END;
     
     alert <--  moveUp =
     IF (has_power)
@@ -181,12 +172,42 @@ OPERATIONS
                     || shipYPosition := yNew
                     || currentPower :=  currentPower - warpPower
                     || alert := Warped  
-                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition)) 
+                    || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition)) 
                 END
             END
         ELSE
             alert := No_Power
         END
+    END;
+
+location, power, collisions <-- MissionStatus = 
+    BEGIN
+        location := (shipXPosition |-> shipYPosition) ||
+        power := currentPower ||
+        collisions := collisionsCount
+    END;
+    
+    route <-- MissionRoute = 
+    BEGIN
+        route := visitedSpaceRegions
+    END;
+    
+    dockedStatus <-- DockedAtStarbase =  
+    IF (is_starbase(shipXPosition, shipYPosition))
+    THEN
+        dockedStatus := TRUE
+    ELSE
+        dockedStatus := FALSE
+    END;
+
+route <-- test1 = 
+    BEGIN
+        route := visitedSpaceRegions
+    END;
+
+test2 = 
+    BEGIN
+        currentPower := 100
     END
     
 END

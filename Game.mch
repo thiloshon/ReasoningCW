@@ -5,20 +5,14 @@
 MACHINE
     Game
     
-EXTENDS
+INCLUDES
     SpaceShip
     
 SETS            
     GAME_STATUS = { READY, PLAYING, WON, LOST }
     
-CONSTANTS
-    starbase
-    
-PROPERTIES
-    starbase = (6 |-> 4)
-    
 DEFINITIONS
-    reached_starbase(x, y) == ((x |-> y) = starbase) // game
+    is_starbase(x, y) == ((x |-> y) = starbase) // game
     
 VARIABLES
     game_status, // game
@@ -31,41 +25,24 @@ INVARIANT
 INITIALISATION
     game_status := READY || move_status := Ready
     
-OPERATIONS
+OPERATIONS 
     
-    dockedStatus <-- DockedAtStarbase =  
-    IF (reached_starbase(shipXPosition, shipYPosition))
-    THEN
-        dockedStatus := TRUE
-    ELSE
-        dockedStatus := FALSE
-    END;
-
     
     status <-- GameStatus =  
-    CASE game_status OF
-        EITHER
-            PLAYING THEN status := Playing
-        OR
-            WON THEN status := Playing
-            
-        END
+    BEGIN
+        status := game_status
     END;
     
-    //BEGIN
-    //    status := game_status
-    //    END;
     
-    
-    
-    flyUp =  
+    alert <-- MoveUp =  
     PRE
-        game_status /= WON
+        game_status /= WON 
     THEN 
-        move_status <-- moveUp ||
+       move_status <-- moveUp 
+         || alert :=  move_status ||
         IF (move_status = Moved_Up)
         THEN
-            IF (reached_starbase(shipXPosition, shipYPosition))
+            IF (is_starbase(shipXPosition, shipYPosition))
             THEN
                 game_status:= WON
             ELSE
@@ -74,17 +51,18 @@ OPERATIONS
         ELSIF (move_status = No_Power)
         THEN
             game_status := LOST
-        END
+        END 
+ 
     END;
     
-    flyDown =  
+    alert <-- MoveDown =  
     PRE
         game_status /= WON
     THEN 
-        move_status <-- moveDown ||
+        move_status <-- moveDown || alert :=  move_status ||
         IF (move_status = Moved_Down)
         THEN
-            IF (reached_starbase(shipXPosition, shipYPosition))
+            IF (is_starbase(shipXPosition, shipYPosition))
             THEN
                 game_status:= WON
             ELSE
@@ -96,14 +74,14 @@ OPERATIONS
         END
     END;
     
-    flyForward =  
+    alert <-- MoveForward =  
     PRE
         game_status /= WON
     THEN
-        move_status <-- moveRight ||
+        move_status <-- moveRight || alert :=  move_status ||
         IF (move_status = Moved_Right)
         THEN
-            IF (reached_starbase(shipXPosition, shipYPosition))
+            IF (is_starbase(shipXPosition, shipYPosition))
             THEN
                 game_status:= WON
             ELSE
@@ -115,14 +93,14 @@ OPERATIONS
         END
     END;
     
-    ReverseFly =  
+    alert <-- MoveBackward =  
     PRE
         game_status /= WON
     THEN 
-        move_status <-- moveLeft ||
+        move_status <-- moveLeft || alert :=  move_status ||
         IF (move_status = Moved_Left)
         THEN
-            IF (reached_starbase(shipXPosition, shipYPosition))
+            IF (is_starbase(shipXPosition, shipYPosition))
             THEN
                 game_status:= WON
             ELSE
@@ -134,14 +112,14 @@ OPERATIONS
         END
     END;
     
-    warpFly(xNew, yNew) = 
+    alert <-- warpFly(xNew, yNew) = 
     PRE 
         xNew :  NATURAL1 & yNew :  NATURAL1 & game_status /= WON
     THEN        
-        move_status <-- EngageWarpDrive(xNew, yNew) ||
+        move_status <-- EngageWarpDrive(xNew, yNew) || alert :=  move_status ||
         IF (move_status = Warped)
         THEN
-            IF (reached_starbase(shipXPosition, shipYPosition))
+            IF (is_starbase(shipXPosition, shipYPosition))
             THEN
                 game_status:= WON
             ELSE
