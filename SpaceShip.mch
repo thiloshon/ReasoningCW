@@ -5,91 +5,86 @@
 
 MACHINE         SpaceShip
     
-SETS            GRIDS;
-    ALERT = { Exceeding_Boundry, Astroid_Strike, No_Power, Moved_Up, Moved_Right, Moved_Down, Moved_Left, Warped, Won, Ready }
+EXTENDS
+    Space, Astroids
     
-CONSTANTS       maxX,
-    maxY, 
+SETS            
+    ALERT = { Exceeding_Boundry, Astroid_Strike, No_Power, Moved_Up, Moved_Right, Moved_Down, Moved_Left, Warped, Ready } // game
+    
+CONSTANTS       
     normalPower,  
     warpPower, 
-    crashPower
+    crashPower,
+    totalPower,
+    homebase
     
-PROPERTIES      maxX = 12  & 
-    maxY = 7 & 
-    normalPower = 5 & 
-    warpPower = 20  & 
-    crashPower = 10
+PROPERTIES     
+    normalPower : NATURAL1 & normalPower = 5 & 
+    warpPower : NATURAL1 & warpPower = 20  & 
+    crashPower : NATURAL1 & crashPower = 10 & 
+    totalPower : NATURAL1 & totalPower = 100 &
+    homebase = (1 |-> 1)
     
-DEFINITIONS     hits_astroid(x, y) == ( y : ran({x} <| astroids) );
+DEFINITIONS     
     has_power == ((currentPower - normalPower) >= 0);
-    strikes_boundry(x, y) == ( x < 1 or x > maxX or y < 1 or y > maxY );
-    reached_starbase(x, y) == (x = starXPosition & y = starYPosition);
-    has_warp_power == ((currentPower - warpPower) >= 0)
+    has_warp_power == ((currentPower - warpPower) >= 0);
+    strikes_boundry(x, y) == (x /: xMin .. xMax or y /: yMin .. yMax);
+    hits_astroid(x, y) == (y : ran({x} <| asteroids))
     
-VARIABLES       shipXPosition, 
+VARIABLES       
+    shipXPosition,
     shipYPosition,
-    starXPosition, 
-    starYPosition, 
-    currentPower, 
-    astroids,
-    alert
+    currentPower,
+    collisionsCount,
+    visitedSpaceRegions
     
     
-INVARIANT       shipXPosition : NAT1 & 
-    shipYPosition : NAT1 & 
-    starXPosition : NAT1 & 
-    starYPosition : NAT1 & 
-    currentPower : NAT1 & 
-    currentPower >= 0 &
-    shipXPosition <= maxX &
-    shipYPosition <= maxY &
-    astroids : NAT1 <-> NAT1 &
-    alert : ALERT
+INVARIANT       
+    shipXPosition : NATURAL1 & shipXPosition : xMin .. xMax & 
+    shipYPosition : NATURAL1 & shipYPosition : yMin .. yMax & (shipYPosition |-> shipXPosition) /: asteroids &
+    currentPower : NATURAL1 &
+    collisionsCount : NATURAL &
+    visitedSpaceRegions : seq(NATURAL1 * NATURAL1)
     
-INITIALISATION  shipXPosition := 1 || 
-    shipYPosition := 1 || 
-    starXPosition := 6 || 
-    starYPosition := 4 || 
-    astroids := {   
-        (3 |-> 2), 
-        (3,5), 
-        (5,4), 
-        (6,4),  
-        (6,7),  
-        (7,1),  
-        (7,5),  
-        (7,7),  
-        (8,3),  
-        (10,6),  
-        (11,2),  
-        (12,5)} ||  
-    currentPower := 30 ||
-    alert := Ready
+INITIALISATION  
+    shipXPosition := prj1(NATURAL1, NATURAL1)(homebase)  || 
+    shipYPosition := prj2(NATURAL1, NATURAL1)(homebase) || 
+    currentPower := totalPower ||
+    collisionsCount := 0 ||
+    visitedSpaceRegions := []
     
     
 OPERATIONS
     
-    moveUp =
-    IF ( has_power)
+    location, power, collisions <-- MissionStatus = 
+    BEGIN
+        location := (shipXPosition |-> shipYPosition) ||
+        power := currentPower ||
+        collisions := collisionsCount
+    END;
+
+    route <-- MissionRoute = 
+    BEGIN
+        route := visitedSpaceRegions
+        END;
+    
+    alert <--  moveUp =
+    IF (has_power)
     THEN
-        IF ( strikes_boundry(shipXPosition, shipYPosition+1))
+        IF (strikes_boundry(shipXPosition, shipYPosition + 1))
         THEN
             alert := Exceeding_Boundry
         ELSE
-            IF ( hits_astroid(shipXPosition, shipYPosition + 1))
+            IF (hits_astroid(shipXPosition, shipYPosition + 1))
             THEN
                 currentPower :=  currentPower - crashPower ||
-                alert := Astroid_Strike
+                alert := Astroid_Strike ||
+                collisionsCount := collisionsCount + 1
             ELSE
                 shipYPosition := shipYPosition + 1
                 || currentPower :=  currentPower - normalPower
-                || 
-                IF (reached_starbase(shipXPosition, shipYPosition))
-                THEN
-                    alert:= Won
-                ELSE
-                    alert := Moved_Up
-                END
+                || alert := Moved_Up  
+                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition))           
             END
         END
     ELSE
@@ -97,119 +92,101 @@ OPERATIONS
     END;
     
     
-    
-    
-    moveDown =
-    IF ( has_power)
+    alert <--  moveDown =
+    IF (has_power)
     THEN
-        IF ( strikes_boundry(shipXPosition, shipYPosition - 1))
+        IF (strikes_boundry(shipXPosition, shipYPosition - 1))
         THEN
             alert := Exceeding_Boundry
         ELSE
-            IF ( hits_astroid(shipXPosition, shipYPosition - 1))
+            IF (hits_astroid(shipXPosition, shipYPosition - 1))
             THEN
                 currentPower :=  currentPower - crashPower ||
-                alert := Astroid_Strike
+                alert := Astroid_Strike ||
+                collisionsCount := collisionsCount + 1
             ELSE
                 shipYPosition := shipYPosition - 1
                 || currentPower :=  currentPower - normalPower
-                || 
-                IF (reached_starbase(shipXPosition, shipYPosition))
-                THEN
-                    alert:= Won
-                ELSE
-                    alert := Moved_Down
-                END
+                || alert := Moved_Down     
+                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition))              
             END
         END
     ELSE
         alert := No_Power
     END;
     
-    moveRight =
-    IF ( has_power)
+    alert <--  moveRight =
+    IF (has_power)
     THEN
-        IF ( strikes_boundry(shipXPosition + 1, shipYPosition))
+        IF (strikes_boundry(shipXPosition + 1, shipYPosition))
         THEN
             alert := Exceeding_Boundry
         ELSE
             IF ( hits_astroid(shipXPosition + 1, shipYPosition))
             THEN
                 currentPower :=  currentPower - crashPower ||
-                alert := Astroid_Strike
+                alert := Astroid_Strike ||
+                collisionsCount := collisionsCount + 1
             ELSE
                 shipXPosition := shipXPosition + 1
                 || currentPower :=  currentPower - normalPower
-                || 
-                IF (reached_starbase(shipXPosition, shipYPosition))
-                THEN
-                    alert:= Won
-                ELSE
-                    alert := Moved_Right
-                END
+                || alert := Moved_Right     
+                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition))              
             END
         END
     ELSE
         alert := No_Power
     END;
     
-    moveLeft =
-    IF ( has_power)
+    alert <-- moveLeft =
+    IF (has_power)
     THEN
-        IF ( strikes_boundry(shipXPosition - 1, shipYPosition))
+        IF (strikes_boundry(shipXPosition - 1, shipYPosition))
         THEN
             alert := Exceeding_Boundry
         ELSE
-            IF ( hits_astroid(shipXPosition - 1, shipYPosition))
+            IF (hits_astroid(shipXPosition - 1, shipYPosition))
             THEN
                 currentPower :=  currentPower - crashPower ||
-                alert := Astroid_Strike
+                alert := Astroid_Strike ||
+                collisionsCount := collisionsCount + 1
             ELSE
                 shipXPosition := shipXPosition - 1
                 || currentPower :=  currentPower - normalPower
-                || 
-                IF (reached_starbase(shipXPosition, shipYPosition))
-                THEN
-                    alert:= Won
-                ELSE
-                    alert := Moved_Left
-                END
+                || alert := Moved_Left  
+                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition)) 
             END
         END
     ELSE
         alert := No_Power
     END;
     
-    EngageWarpDrive(xNew, yNew) =
+    alert <-- EngageWarpDrive(xNew, yNew) =
     PRE 
-        xNew :  NAT & yNew :  NAT
+        xNew :  NATURAL1 & yNew :  NATURAL1
     THEN
-        IF ( has_warp_power )
+        IF (has_warp_power )
         THEN
-            IF ( strikes_boundry(xNew, yNew))
+            IF (strikes_boundry(xNew, yNew))
             THEN
                 alert := Exceeding_Boundry
             ELSE
                 IF ( hits_astroid(xNew, yNew))
                 THEN
                     currentPower :=  currentPower - crashPower ||
-                    alert := Astroid_Strike
+                    alert := Astroid_Strike ||
+                    collisionsCount := collisionsCount + 1
                 ELSE
                     shipXPosition := xNew
                     || shipYPosition := yNew
                     || currentPower :=  currentPower - warpPower
-                    || 
-                    IF (reached_starbase(shipXPosition, shipYPosition))
-                    THEN
-                        alert:= Won
-                    ELSE
-                        alert := Warped
-                    END
+                    || alert := Warped  
+                || visitedSpaceRegions := (visitedSpaceRegions <- (shipXPosition |->  shipYPosition)) 
                 END
             END
         ELSE
             alert := No_Power
         END
     END
-
+    
 END
