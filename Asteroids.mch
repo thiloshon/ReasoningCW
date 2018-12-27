@@ -2,13 +2,13 @@
 ** 6SENG001W Reasoning About Programs Coursework
 ** Spaceship & Asteroids
 **
-** Component: Astroids
+** Component: Asteroids
 ** Author:    Thiloshon
 ** Created:   24-Dec-18
 ** Modified:  26-Dec-18
 *********************************************** */
 MACHINE
-    Astroids
+    Asteroids
     
 SEES
     Space

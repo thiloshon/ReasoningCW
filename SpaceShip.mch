@@ -10,8 +10,8 @@
 MACHINE         
     SpaceShip   
     
-INCLUDES
-    Space, Astroids
+USES
+    Space, Asteroids
     
 SETS            
     ALERT = { 
@@ -77,7 +77,7 @@ INITIALISATION
     
 OPERATIONS
     
-    alert <--  moveUp =
+    alert <--  MoveUp =
     PRE
         game_status /= WON
     THEN
@@ -112,7 +112,7 @@ OPERATIONS
     END;
     
     
-    alert <--  moveDown =
+    alert <--  MoveDown =
     IF (has_power)
     THEN
         IF (strikes_boundry(shipXPosition, shipYPosition - 1))
@@ -143,7 +143,7 @@ OPERATIONS
     END;
     
     
-    alert <--  moveRight =
+    alert <--  MoveForward =
     IF (has_power)
     THEN
         IF (strikes_boundry(shipXPosition + 1, shipYPosition))
@@ -174,7 +174,7 @@ OPERATIONS
     END;
     
     
-    alert <-- moveLeft =
+    alert <-- MoveBackward =
     IF (has_power)
     THEN
         IF (strikes_boundry(shipXPosition - 1, shipYPosition))
